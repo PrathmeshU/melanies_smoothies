@@ -14,17 +14,19 @@ name_on_order = st.text_input('Name on Smoothie:')
 st.write('The name on your Smoothie will be:', name_on_order)
 
 
-connection_parameters = {
-    "user": st.secrets["user"],
-    "password": st.secrets["password"],
-    "account": st.secrets["account"],
-    "role": st.secrets["role"],
-    "warehouse": st.secrets["warehouse"],
-    "database": st.secrets["database"],
-    "schema": st.secrets["schema"]
-}
-
-session = Session.builder.configs(connection_parameters).create()
+try:
+    connection_parameters = {
+        "user": st.secrets["user"],
+        "password": st.secrets["password"],
+        "account": st.secrets["account"],
+        "role": st.secrets["role"],
+        "warehouse": st.secrets["warehouse"],
+        "database": st.secrets["database"],
+        "schema": st.secrets["schema"]
+    }
+    session = Session.builder.configs(connection_parameters).create()
+except KeyError as e:
+    st.error(f"Missing secret: {e}")
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
 # st.dataframe(data=my_dataframe, use_container_width=True)
 
