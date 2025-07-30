@@ -66,12 +66,26 @@ api_url = f"https://www.fruityvice.com/api/fruit/{fruit_to_fetch}"
 
 response = requests.get(api_url)
 
+import pandas as pd
+
 if response.status_code == 200:
     try:
         fruit_data = response.json()
         st.subheader(f"Nutritional Info for {fruit_to_fetch.capitalize()}")
-        st.json(fruit_data)
+
+        # Flatten and format into a DataFrame
+        flat_data = {
+            "Name": fruit_data.get("name", ""),
+            "Family": fruit_data.get("family", ""),
+            "Genus": fruit_data.get("genus", ""),
+            "Order": fruit_data.get("order", ""),
+            **fruit_data.get("nutritions", {})  # Expand nutrition dictionary
+        }
+
+        df = pd.DataFrame([flat_data])
+        st.dataframe(df, use_container_width=True)
+
     except Exception as e:
-        st.error(f"❌ Could not decode fruit API response: {e}")
+        st.error(f"❌ Could not decode or format API response: {e}")
 else:
     st.warning(f"⚠️ Could not fetch data from Fruityvice (Status {response.status_code})")
