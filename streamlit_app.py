@@ -51,14 +51,16 @@ ingredients_list = st.multiselect(
 
 # Submit order
 if ingredients_list:
-    ingredients_string = ', '.join(ingredients_list)
+        # Build a cleanly formatted ingredients string
+    ingredients_string = ", ".join(ingredients_list)
     st.write("You chose:", ingredients_string)
 
     # Store in Snowflake orders table
     insert_stmt = f"""
-        INSERT INTO smoothies.public.orders(ingredients, name_on_order)
-        VALUES ('{ingredients_string}', '{name_on_order}')
+        INSERT INTO smoothies.public.orders (ingredients, name_on_order, order_filled, order_ts)
+        VALUES ('{ingredients_string}', '{name_on_order}', FALSE, CURRENT_TIMESTAMP)
     """
+
 
     if st.button('Submit Order'):
         try:
