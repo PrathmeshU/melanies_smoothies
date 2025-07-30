@@ -15,13 +15,13 @@ st.write('The name on your Smoothie will be:', name_on_order)
 
 
 connection_parameters = {
-    "user": st.secrets["Pratham710"],
-    "password": st.secrets["Qwertyuiop@1234"],
-    "account": st.secrets["RCZVRJP-YUB14058"],
-    "role": st.secrets["SYSADMIN"],
-    "warehouse": st.secrets["COMPUTE_WH"],
-    "database": st.secrets["SMOOTHIES"],
-    "schema": st.secrets["PUBLIC"],
+    "user": st.secrets["user"],
+    "password": st.secrets["password"],
+    "account": st.secrets["account"],
+    "role": st.secrets["role"],
+    "warehouse": st.secrets["warehouse"],
+    "database": st.secrets["database"],
+    "schema": st.secrets["schema"]
 }
 
 session = Session.builder.configs(connection_parameters).create()
