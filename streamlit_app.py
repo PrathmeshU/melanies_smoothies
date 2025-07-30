@@ -73,19 +73,34 @@ if response.status_code == 200:
         fruit_data = response.json()
         st.subheader(f"Nutritional Info for {fruit_to_fetch.capitalize()}")
 
-        # Flatten and format into a DataFrame
-        flat_data = {
-            "Name": fruit_data.get("name", ""),
-            "Family": fruit_data.get("family", ""),
-            "Genus": fruit_data.get("genus", ""),
-            "Order": fruit_data.get("order", ""),
-            **fruit_data.get("nutritions", {})  # Expand nutrition dictionary
+        # Extract constant values
+        base_info = {
+            "family": fruit_data.get("family", ""),
+            "genus": fruit_data.get("genus", ""),
+            "id": fruit_data.get("id", ""),
+            "name": fruit_data.get("name", ""),
+            "order": fruit_data.get("order", "")
         }
 
-        df = pd.DataFrame([flat_data])
+        # Extract nutrition values
+        nutritions = fruit_data.get("nutritions", {})
+
+        # Create a DataFrame in the desired format
+        rows = []
+        for nutrient, value in nutritions.items():
+            row = {
+                "": nutrient,  # empty column for eye icon mimicry
+                "family": base_info["family"],
+                "genus": base_info["genus"],
+                "id": base_info["id"],
+                "name": base_info["name"],
+                "nutrition": value,
+                "order": base_info["order"]
+            }
+            rows.append(row)
+
+        df = pd.DataFrame(rows)
         st.dataframe(df, use_container_width=True)
 
     except Exception as e:
         st.error(f"❌ Could not decode or format API response: {e}")
-else:
-    st.warning(f"⚠️ Could not fetch data from Fruityvice (Status {response.status_code})")
