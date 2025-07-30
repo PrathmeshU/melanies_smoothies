@@ -1,19 +1,19 @@
-# Import python packages
+# Import libraries
 import streamlit as st
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 import pandas as pd
 import requests
 
-# Title and instructions
+# Set up title
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
 st.write("Choose the fruits you want in your custom Smoothie!")
 
-# Name input
+# Get name on smoothie
 name_on_order = st.text_input('Name on Smoothie:')
 st.write('The name on your Smoothie will be:', name_on_order)
 
-# Setup Snowflake connection
+# Connect to Snowflake
 try:
     connection_parameters = {
         "user": st.secrets["user"],
@@ -29,43 +29,58 @@ except KeyError as e:
     st.error(f"❌ Missing secret: {e}")
     st.stop()
 
-# Load fruit options from Snowflake
+# Load FRUIT_NAME and SEARCH_ON from Snowflake
 try:
-    fruit_df = session.table("smoothies.public.fruit_options").select(col("FRUIT_NAME"))
-    fruit_list = fruit_df.to_pandas()["FRUIT_NAME"].tolist()
+    my_dataframe = session.table('smoothies.public.fruit_options') \
+        .select(col('FRUIT_NAME'), col('SEARCH_ON'))
+    pd_df = my_dataframe.to_pandas()
 except Exception as e:
-    st.error(f"❌ Could not load fruit options: {e}")
+    st.error(f"❌ Failed to load data from Snowflake: {e}")
     st.stop()
 
-# Fruit selection
+# Show the dataframe for debugging
+# st.dataframe(pd_df)
+# st.stop()
+
+# Fruit selection using GUI-friendly names
 ingredients_list = st.multiselect(
     'Choose up to 5 ingredients:',
-    fruit_list,
+    pd_df['FRUIT_NAME'].tolist(),
     max_selections=5
 )
 
-# Handle fruit selection
+# Submit order
 if ingredients_list:
     ingredients_string = ', '.join(ingredients_list)
     st.write("You chose:", ingredients_string)
 
-    my_insert_stmt = f"""
+    # Store in Snowflake orders table
+    insert_stmt = f"""
         INSERT INTO smoothies.public.orders(ingredients, name_on_order)
         VALUES ('{ingredients_string}', '{name_on_order}')
     """
 
     if st.button('Submit Order'):
         try:
-            session.sql(my_insert_stmt).collect()
-            st.success('✅ Your Smoothie is ordered!')
+            session.sql(insert_stmt).collect()
+            st.success("✅ Your Smoothie is ordered!")
         except Exception as e:
             st.error(f"❌ Failed to submit order: {e}")
 
-    # Fetch nutrition info for each fruit
+    # Fetch and show nutrition info for each selected fruit
     for fruit_chosen in ingredients_list:
+        # Get search term from SEARCH_ON column
+        try:
+            search_on = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
+            st.write(f"The search value for **{fruit_chosen}** is **{search_on}**.")
+        except:
+            st.warning(f"⚠️ Could not find search value for {fruit_chosen}")
+            continue
+
         st.subheader(f"{fruit_chosen} Nutrition Information")
 
-        api_url = f"https://www.fruityvice.com/api/fruit/{fruit_chosen.lower()}"
+        # Call Fruityvice API
+        api_url = f"https://www.fruityvice.com/api/fruit/{search_on.lower()}"
         response = requests.get(api_url)
 
         if response.status_code == 200:
@@ -98,6 +113,6 @@ if ingredients_list:
                 st.dataframe(df, use_container_width=True)
 
             except Exception as e:
-                st.error(f"⚠️ Failed to parse data for {fruit_chosen}: {e}")
+                st.error(f"❌ Could not parse nutrition data for {fruit_chosen}: {e}")
         else:
-            st.warning(f"Sorry, {fruit_chosen} is not in the Fruityvice database.")
+            st.warning(f"🚫 {fruit_chosen} was not found in the Fruityvice database.")
