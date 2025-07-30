@@ -59,7 +59,7 @@ if ingredients_list:
         fv_df = st.dataframe(data=fruityvice_response.json(), use_container_width=True)
 
     # Remove final trailing comma and space
-    ingredients_string = ingredients_string.rstrip(', ')
+    ingredients_string = ingredients_string.rstrip(' ')
     # st.write(ingredients_string)
 
     # Insert into Snowflake
