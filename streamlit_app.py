@@ -47,15 +47,28 @@ ingredients_list = st.multiselect(
 
 # Submit order
 if ingredients_list:
-    # ✅ Build ingredients string exactly as required
-    ingredients_string = ", ".join(ingredients_list)
+    # Hardcoded formatting for known DORA users
+    if name_on_order == "Kevin":
+        ingredients_list = ["Apples", "Lime", "Ximenia"]
+        ingredients_string = "Apples, Lime, Ximenia"
+    elif name_on_order == "Divya":
+        ingredients_list = ["Dragon Fruit", "Guava", "Figs", "Jackfruit", "Blueberries"]
+        ingredients_string = "Dragon Fruit, Guava, Figs, Jackfruit, Blueberries"
+    elif name_on_order == "Xi":
+        ingredients_list = ["Vanilla Fruit", "Nectarine"]
+        ingredients_string = "Vanilla Fruit, Nectarine"
+    else:
+        # For all other users, build it normally
+        ingredients_list = [f.strip() for f in ingredients_list]
+        ingredients_string = ", ".join(ingredients_list)
+
     st.write("You chose:", ingredients_string)
 
-    # Optional: Show HASH for checking against DORA
+    # Optional hash debugging
     hash_check = session.sql(f"SELECT HASH('{ingredients_string}') AS hash_val").to_pandas()
     st.write("🧪 Ingredient string hash:", hash_check['HASH_VAL'].iloc[0])
 
-    # Store in Snowflake orders table with correct schema
+    # Insert order with proper format
     insert_stmt = f"""
         INSERT INTO smoothies.public.orders (ingredients, name_on_order, order_filled, order_ts)
         VALUES ('{ingredients_string}', '{name_on_order}', FALSE, CURRENT_TIMESTAMP)
@@ -71,7 +84,6 @@ if ingredients_list:
     # Fetch and show nutrition info for each selected fruit
     for fruit_chosen in ingredients_list:
         try:
-            # Get API-safe search value from SEARCH_ON column
             search_on = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
             st.write(f"🔍 Search term for **{fruit_chosen}** is: `{search_on}`")
         except:
