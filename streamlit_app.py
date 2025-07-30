@@ -2,6 +2,7 @@
 import streamlit as st
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
+import pandas as pd
 import requests
 
 # Title and instructions
@@ -45,7 +46,7 @@ ingredients_list = st.multiselect(
 
 # Handle fruit selection
 if ingredients_list:
-    ingredients_string = ", ".join(ingredients_list)
+    ingredients_string = ', '.join(ingredients_list)
     st.write("You chose:", ingredients_string)
 
     my_insert_stmt = f"""
@@ -60,47 +61,43 @@ if ingredients_list:
         except Exception as e:
             st.error(f"❌ Failed to submit order: {e}")
 
-# Fetch fruit nutrition info from external API (using Fruityvice)
-fruit_to_fetch = "watermelon"
-api_url = f"https://www.fruityvice.com/api/fruit/{fruit_to_fetch}"
+    # Fetch nutrition info for each fruit
+    for fruit_chosen in ingredients_list:
+        st.subheader(f"{fruit_chosen} Nutrition Information")
 
-response = requests.get(api_url)
+        api_url = f"https://www.fruityvice.com/api/fruit/{fruit_chosen.lower()}"
+        response = requests.get(api_url)
 
-import pandas as pd
+        if response.status_code == 200:
+            try:
+                fruit_data = response.json()
 
-if response.status_code == 200:
-    try:
-        fruit_data = response.json()
-        st.subheader(f"Nutritional Info for {fruit_to_fetch.capitalize()}")
+                base_info = {
+                    "family": fruit_data.get("family", ""),
+                    "genus": fruit_data.get("genus", ""),
+                    "id": fruit_data.get("id", ""),
+                    "name": fruit_data.get("name", ""),
+                    "order": fruit_data.get("order", "")
+                }
 
-        # Extract constant values
-        base_info = {
-            "family": fruit_data.get("family", ""),
-            "genus": fruit_data.get("genus", ""),
-            "id": fruit_data.get("id", ""),
-            "name": fruit_data.get("name", ""),
-            "order": fruit_data.get("order", "")
-        }
+                nutritions = fruit_data.get("nutritions", {})
+                rows = []
 
-        # Extract nutrition values
-        nutritions = fruit_data.get("nutritions", {})
+                for nutrient, value in nutritions.items():
+                    rows.append({
+                        "": nutrient,
+                        "family": base_info["family"],
+                        "genus": base_info["genus"],
+                        "id": base_info["id"],
+                        "name": base_info["name"],
+                        "nutrition": value,
+                        "order": base_info["order"]
+                    })
 
-        # Create a DataFrame in the desired format
-        rows = []
-        for nutrient, value in nutritions.items():
-            row = {
-                "": nutrient,  # empty column for eye icon mimicry
-                "family": base_info["family"],
-                "genus": base_info["genus"],
-                "id": base_info["id"],
-                "name": base_info["name"],
-                "nutrition": value,
-                "order": base_info["order"]
-            }
-            rows.append(row)
+                df = pd.DataFrame(rows)
+                st.dataframe(df, use_container_width=True)
 
-        df = pd.DataFrame(rows)
-        st.dataframe(df, use_container_width=True)
-
-    except Exception as e:
-        st.error(f"❌ Could not decode or format API response: {e}")
+            except Exception as e:
+                st.error(f"⚠️ Failed to parse data for {fruit_chosen}: {e}")
+        else:
+            st.warning(f"Sorry, {fruit_chosen} is not in the Fruityvice database.")
