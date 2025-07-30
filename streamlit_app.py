@@ -52,7 +52,7 @@ ingredients_list = st.multiselect(
 # Submit order
 if ingredients_list:
         # Build a cleanly formatted ingredients string
-    ingredients_string = ", ".join(ingredients_list)
+    ingredients_string = ",".join(ingredients_list)
     st.write("You chose:", ingredients_string)
 
     # Store in Snowflake orders table
